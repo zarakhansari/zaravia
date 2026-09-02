@@ -1,3 +1,5 @@
+import DestinationSearch from "./DestinationSearch";
+
 function Hero() {
     return (
         <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden">
@@ -16,24 +18,8 @@ function Hero() {
                     and build your perfect trip.
                 </p>
 
-                <div className="mt-10 flex w-full max-w-2xl items-center rounded-full border border-[var(--color-border)] bg-white p-2 shadow-sm">
-                    <div className="flex flex-1 items-center px-4 text-left">
-                        <span className="mr-3 text-xl">⌕</span>
-
-                        <div>
-                            <p className="text-xs font-medium text-[var(--color-muted)]">
-                                Destination
-                            </p>
-
-                            <p className="text-sm font-medium">
-                                Where do you want to go?
-                            </p>
-                        </div>
-                    </div>
-
-                    <button className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90">
-                        Explore
-                    </button>
+                <div className="mt-10 w-full flex justify-center">
+                    <DestinationSearch />
                 </div>
 
             </div>
