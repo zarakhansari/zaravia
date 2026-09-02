@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
 :root {
+  --color-background: #f7f5f0;
+  --color-surface: #ffffff;
+  --color-text: #171717;
+  --color-muted: #6b6b6b;
+  --color-accent: #d97757;
+  --color-border: #e7e3dc;
+
   font-family: Inter, system-ui, sans-serif;
-  color: #171717;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-background);
 }
 
 * {
@@ -17,4 +24,5 @@ html {
 body {
   margin: 0;
   min-width: 320px;
+  background: var(--color-background);
 }

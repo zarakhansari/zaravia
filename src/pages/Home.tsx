@@ -1,9 +1,9 @@
+import Hero from "../components/Hero";
+
 function Home() {
     return (
-        <main className="min-h-screen bg-white flex items-center justify-center">
-            <h1 className="text-5xl font-bold tracking-tight">
-                Zaravia
-            </h1>
+        <main className="min-h-screen bg-[var(--color-background)] flex flex-col items-center justify-center gap-6">
+            <Hero />
         </main>
     );
 }
