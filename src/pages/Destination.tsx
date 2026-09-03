@@ -7,9 +7,14 @@ import type { Weather } from "../types/weather";
 import { getWeatherDescription } from "../utils/formatWeather";
 import { getPlaces } from "../services/placesApi";
 import type { Place } from "../types/place";
+import Map from "../components/Map";
+
 
 function Destination() {
     const { name } = useParams();
+
+    const [selectedPlace, setSelectedPlace] =
+        useState<Place | null>(null);
 
     const [destination, setDestination] =
         useState<DestinationType | null>(null);
@@ -213,9 +218,10 @@ function Destination() {
                 {places.length > 0 ? (
                     <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {places.map((place) => (
-                            <div
+                            <button
                                 key={place.id}
-                                className="rounded-2xl border border-[var(--color-border)] p-5 transition hover:-translate-y-1 hover:shadow-md"
+                                onClick={() => setSelectedPlace(place)}
+                                className="rounded-2xl border border-[var(--color-border)] p-5 text-left transition hover:-translate-y-1 hover:shadow-md"
                             >
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-background)]">
                                     📍
@@ -228,7 +234,7 @@ function Destination() {
                                 <p className="mt-1 text-sm capitalize text-[var(--color-muted)]">
                                     {place.type.replaceAll("_", " ")}
                                 </p>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 ) : (
@@ -237,6 +243,26 @@ function Destination() {
                     </p>
                 )}
             </section>
+
+            {selectedPlace && (
+                <section className="mt-8">
+                    <div className="mb-4">
+                        <p className="text-sm text-[var(--color-muted)]">
+                            Selected place
+                        </p>
+
+                        <h3 className="text-2xl font-semibold">
+                            {selectedPlace.name}
+                        </h3>
+                    </div>
+
+                    <Map
+                        latitude={selectedPlace.latitude}
+                        longitude={selectedPlace.longitude}
+                        place={selectedPlace}
+                    />
+                </section>
+            )}
             {/* Coordinates */}
             <section className="mt-8 rounded-3xl border border-[var(--color-border)] p-6">
                 <p className="text-sm text-[var(--color-muted)]">
