@@ -5,6 +5,8 @@ import { getWeather } from "../services/weatherApi";
 import type { Destination as DestinationType } from "../types/destination";
 import type { Weather } from "../types/weather";
 import { getWeatherDescription } from "../utils/formatWeather";
+import { getPlaces } from "../services/placesApi";
+import type { Place } from "../types/place";
 
 function Destination() {
     const { name } = useParams();
@@ -13,6 +15,8 @@ function Destination() {
         useState<DestinationType | null>(null);
 
     const [weather, setWeather] = useState<Weather | null>(null);
+
+    const [places, setPlaces] = useState<Place[]>([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -36,6 +40,14 @@ function Destination() {
                 const selectedDestination = results[0];
 
                 setDestination(selectedDestination);
+
+                //Get places using coordinates
+                const placesData = await getPlaces(
+                    selectedDestination.latitude,
+                    selectedDestination.longitude,
+                );
+
+                setPlaces(placesData);
 
                 // Get weather using coordinates
                 const weatherData = await getWeather(
@@ -182,6 +194,49 @@ function Destination() {
                 </div>
             </section>
 
+
+            <section className="mt-16">
+                <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                        Explore
+                    </p>
+
+                    <h2 className="mt-2 text-3xl font-semibold">
+                        Things to do
+                    </h2>
+
+                    <p className="mt-2 text-[var(--color-muted)]">
+                        Discover places worth visiting in {destination.name}.
+                    </p>
+                </div>
+
+                {places.length > 0 ? (
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {places.map((place) => (
+                            <div
+                                key={place.id}
+                                className="rounded-2xl border border-[var(--color-border)] p-5 transition hover:-translate-y-1 hover:shadow-md"
+                            >
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-background)]">
+                                    📍
+                                </div>
+
+                                <h3 className="mt-4 font-semibold">
+                                    {place.name}
+                                </h3>
+
+                                <p className="mt-1 text-sm capitalize text-[var(--color-muted)]">
+                                    {place.type.replaceAll("_", " ")}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="mt-6 text-[var(--color-muted)]">
+                        No places found nearby.
+                    </p>
+                )}
+            </section>
             {/* Coordinates */}
             <section className="mt-8 rounded-3xl border border-[var(--color-border)] p-6">
                 <p className="text-sm text-[var(--color-muted)]">
