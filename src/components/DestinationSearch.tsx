@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { searchDestinations } from "../services/geocodingApi";
 import { getWeather } from "../services/weatherApi";
 import type { Destination } from "../types/destination";
 import type { Weather } from "../types/weather";
+import { getWeatherDescription } from "../utils/formatWeather";
 
 function DestinationSearch() {
     const [query, setQuery] = useState("");
@@ -11,22 +12,17 @@ function DestinationSearch() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    async function handleSearch() {
-        if (!query.trim()) {
-            setError("Please enter a destination.");
+    async function handleSearch(searchQuery: string) {
+        if (!searchQuery.trim()) {
+            setDestinations([]);
             return;
         }
 
         try {
             setLoading(true);
             setError("");
-            setWeather(null);
 
-            const results = await searchDestinations(query);
-
-            if (results.length === 0) {
-                setError("No destinations found.");
-            }
+            const results = await searchDestinations(searchQuery);
 
             setDestinations(results);
         } catch {
@@ -37,10 +33,23 @@ function DestinationSearch() {
         }
     }
 
+    useEffect(() => {
+        if (!query.trim()) { setDestinations([]); return; }
+        const timer = setTimeout(() => {
+            handleSearch(query);
+        }, 400);
+        return () => clearTimeout(timer)
+    }, [query]);
+
+
+
     async function handleDestinationSelect(destination: Destination) {
         try {
             setLoading(true);
             setError("");
+
+            setQuery(destination.name);
+            setDestinations([]);
 
             const result = await getWeather(
                 destination.latitude,
@@ -58,31 +67,65 @@ function DestinationSearch() {
     return (
         <div className="w-full max-w-2xl">
             {/* Search */}
-            <div className="flex items-center rounded-full border border-[var(--color-border)] bg-white p-2 shadow-sm">
-                <div className="flex flex-1 items-center">
-                    <span className="ml-3 mr-2 text-xl">⌕</span>
+            <div className="relative">
+                <div className="flex items-center rounded-full border border-[var(--color-border)] bg-white p-2 shadow-sm">
+                    <div className="flex flex-1 items-center">
+                        <span className="ml-3 mr-2 text-xl">⌕</span>
 
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                                handleSearch();
-                            }
-                        }}
-                        placeholder="Where do you want to go?"
-                        className="w-full bg-transparent px-2 py-3 text-sm outline-none"
-                    />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(event) => {
+                                setQuery(event.target.value);
+                                setWeather(null);
+                                setError("");
+                            }}
+                            placeholder="Where do you want to go?"
+                            className="w-full bg-transparent px-2 py-3 text-sm outline-none"
+                        />
+
+                        {loading && (
+                            <span className="mr-3 text-xs text-[var(--color-muted)]">
+                                Searching...
+                            </span>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={() => handleSearch(query)}
+                        disabled={loading || !query.trim()}
+                        className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Search
+                    </button>
                 </div>
 
-                <button
-                    onClick={handleSearch}
-                    disabled={loading}
-                    className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    {loading ? "Searching..." : "Search"}
-                </button>
+                {/* Suggestions */}
+                {destinations.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-10 mt-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white text-left shadow-lg">
+                        {destinations.map((destination) => (
+                            <button
+                                key={destination.id}
+                                onClick={() => handleDestinationSelect(destination)}
+                                className="flex w-full items-center gap-4 border-b border-[var(--color-border)] p-4 transition last:border-b-0 hover:bg-[var(--color-background)]"
+                            >
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-background)]">
+                                    📍
+                                </div>
+
+                                <div>
+                                    <p className="font-medium">
+                                        {destination.name}
+                                    </p>
+
+                                    <p className="text-sm text-[var(--color-muted)]">
+                                        {destination.country}
+                                    </p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Error */}
@@ -92,34 +135,6 @@ function DestinationSearch() {
                 </p>
             )}
 
-            {/* Destination results */}
-            {destinations.length > 0 && (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white text-left shadow-sm">
-                    {destinations.map((destination) => (
-                        <button
-                            key={destination.id}
-                            onClick={() => handleDestinationSelect(destination)}
-                            className="flex w-full items-center justify-between border-b border-[var(--color-border)] p-4 transition last:border-b-0 hover:bg-[var(--color-background)]"
-                        >
-                            <div>
-                                <p className="font-medium">
-                                    {destination.name}
-                                </p>
-
-                                <p className="text-sm text-[var(--color-muted)]">
-                                    {destination.country}
-                                </p>
-                            </div>
-
-                            <span className="text-xs text-[var(--color-muted)]">
-                                {destination.latitude.toFixed(2)},{" "}
-                                {destination.longitude.toFixed(2)}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            )}
-
             {/* Weather */}
             {weather && (
                 <div className="mt-6 rounded-2xl bg-[var(--color-text)] p-6 text-left text-white">
@@ -127,16 +142,24 @@ function DestinationSearch() {
                         Current weather
                     </p>
 
-                    <p className="mt-2 text-4xl font-semibold">
-                        {weather.temperature}°C
-                    </p>
+                    <div className="mt-4 flex items-center gap-4">
+                        <span className="text-5xl">
+                            {getWeatherDescription(weather.weatherCode).icon}
+                        </span>
 
-                    <p className="mt-2 text-sm opacity-70">
-                        Wind {weather.windSpeed} km/h
-                    </p>
+                        <div>
+                            <p className="text-4xl font-semibold">
+                                {Math.round(weather.temperature)}°C
+                            </p>
 
-                    <p className="mt-1 text-sm opacity-70">
-                        Weather code: {weather.weatherCode}
+                            <p className="mt-1 text-sm opacity-70">
+                                {getWeatherDescription(weather.weatherCode).label}
+                            </p>
+                        </div>
+                    </div>
+
+                    <p className="mt-4 text-sm opacity-70">
+                        Wind {Math.round(weather.windSpeed)} km/h
                     </p>
                 </div>
             )}
