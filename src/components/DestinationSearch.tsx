@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { searchDestinations } from "../services/geocodingApi";
 import { getWeather } from "../services/weatherApi";
 import type { Destination } from "../types/destination";
@@ -6,6 +7,9 @@ import type { Weather } from "../types/weather";
 import { getWeatherDescription } from "../utils/formatWeather";
 
 function DestinationSearch() {
+
+    const navigate = useNavigate();
+
     const [query, setQuery] = useState("");
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [weather, setWeather] = useState<Weather | null>(null);
@@ -43,25 +47,15 @@ function DestinationSearch() {
 
 
 
-    async function handleDestinationSelect(destination: Destination) {
-        try {
-            setLoading(true);
-            setError("");
+    function handleDestinationSelect(destination: Destination) {
+        setQuery(destination.name);
+        setDestinations([]);
 
-            setQuery(destination.name);
-            setDestinations([]);
-
-            const result = await getWeather(
-                destination.latitude,
-                destination.longitude,
-            );
-
-            setWeather(result);
-        } catch {
-            setError("Could not load weather.");
-        } finally {
-            setLoading(false);
-        }
+        navigate(`/destination/${encodeURIComponent(destination.name)}`, {
+            state: {
+                destination,
+            },
+        });
     }
 
     return (
