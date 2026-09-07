@@ -5,10 +5,12 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { searchDestinations } from "../services/geocodingApi";
 import { getWeather } from "../services/weatherApi";
 import { getPlaces } from "../services/placesApi";
+import { searchDestinationImage } from "../services/imageApi";
 
 import type { Destination as DestinationType } from "../types/destination";
 import type { Weather } from "../types/weather";
 import type { Place } from "../types/place";
+import type { DestinationImage } from "../types/image";
 
 import { getWeatherDescription } from "../utils/formatWeather";
 import Map from "../components/Map";
@@ -30,6 +32,9 @@ function Destination() {
 
     const [places, setPlaces] =
         useState<Place[]>([]);
+
+    const [destinationImage, setDestinationImage] =
+        useState<DestinationImage | null>(null);
 
     const [loading, setLoading] =
         useState(true);
@@ -69,6 +74,13 @@ function Destination() {
                 const selectedDestination = results[0];
 
                 setDestination(selectedDestination);
+
+                // Get destination image from Unsplash
+                const imageData = await searchDestinationImage(
+                    selectedDestination.name
+                );
+
+                setDestinationImage(imageData);
 
                 // Get places using coordinates
                 const placesData = await getPlaces(
@@ -225,6 +237,7 @@ function Destination() {
         <main className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
 
             {/* Destination hero */}
+
             <section className="mt-4">
                 <div className="grid items-center gap-10 lg:grid-cols-[1fr_380px]">
 
@@ -247,6 +260,32 @@ function Destination() {
                             weather, and start planning your trip to{" "}
                             {destination.name}.
                         </p>
+
+                        {/* Unsplash destination image */}
+                        {destinationImage && (
+                            <div className="mt-8">
+                                <div className="overflow-hidden rounded-3xl">
+                                    <img
+                                        src={destinationImage.url}
+                                        alt={`View of ${destination.name}`}
+                                        className="h-80 w-full rounded-3xl object-cover"
+                                    />
+                                </div>
+
+                                <p className="mt-2 px-1 text-xs text-[var(--color-muted)]">
+                                    Photo by{" "}
+                                    <a
+                                        href={destinationImage.photographerUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="underline hover:text-[var(--color-text)]"
+                                    >
+                                        {destinationImage.photographerName}
+                                    </a>{" "}
+                                    on Unsplash
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Weather card */}
@@ -257,26 +296,31 @@ function Destination() {
                                 Current weather
                             </p>
 
+                            {/* Weather information */}
                             <div className="mt-6 flex items-center gap-5">
 
-                                <span className="text-6xl">
-                                    {weatherDescription.icon}
-                                </span>
+                                {/* Weather icon */}
+                                <div className="flex h-20 w-20 shrink-0 items-center justify-center">
+                                    <span className="text-6xl leading-none">
+                                        {weatherDescription.icon}
+                                    </span>
+                                </div>
 
+                                {/* Temperature */}
                                 <div>
-                                    <p className="text-5xl font-semibold">
+                                    <p className="text-5xl font-semibold leading-none">
                                         {Math.round(weather.temperature)}°C
                                     </p>
 
-                                    <p className="mt-1 text-sm opacity-70">
+                                    <p className="mt-3 text-sm opacity-70">
                                         {weatherDescription.label}
                                     </p>
                                 </div>
 
                             </div>
 
+                            {/* Wind */}
                             <div className="mt-7 border-t border-white/15 pt-5">
-
                                 <div className="flex items-center justify-between">
 
                                     <span className="text-sm opacity-60">
@@ -288,7 +332,6 @@ function Destination() {
                                     </span>
 
                                 </div>
-
                             </div>
 
                         </div>
@@ -298,7 +341,6 @@ function Destination() {
             </section>
 
             {/* 5-day forecast */}
-
             <section className="mt-16">
 
                 <div>
@@ -363,7 +405,6 @@ function Destination() {
 
             </section>
 
-            {/* Things to do */}
             {/* Things to do */}
             <section className="mt-20">
 
@@ -525,7 +566,6 @@ function Destination() {
             )}
 
             {/* Your trip */}
-            {/* Your trip */}
             <section className="mt-20">
 
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -637,20 +677,6 @@ function Destination() {
                 )}
 
             </section>
-
-            {/* Coordinates
-            <section className="mt-8 rounded-3xl border border-[var(--color-border)] p-6">
-
-                <p className="text-sm text-[var(--color-muted)]">
-                    Location
-                </p>
-
-                <p className="mt-2">
-                    {destination.latitude.toFixed(4)},{" "}
-                    {destination.longitude.toFixed(4)}
-                </p>
-
-            </section> */}
 
         </main>
     );
