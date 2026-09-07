@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { searchDestinations } from "../services/geocodingApi";
-import { getWeather } from "../services/weatherApi";
+// import { getWeather } from "../services/weatherApi";
 import type { Destination } from "../types/destination";
 import type { Weather } from "../types/weather";
 import { getWeatherDescription } from "../utils/formatWeather";
