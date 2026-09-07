@@ -298,16 +298,22 @@ function Destination() {
             </section>
 
             {/* 5-day forecast */}
-            <section className="mt-10">
 
-                <h2 className="text-2xl font-semibold">
-                    5-day forecast
-                </h2>
+            <section className="mt-16">
 
-                <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-5">
+                <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                        Weather
+                    </p>
+
+                    <h2 className="mt-2 text-3xl font-semibold">
+                        5-day forecast
+                    </h2>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-5">
 
                     {weather?.forecast.map((day) => {
-
                         const description =
                             getWeatherDescription(day.weatherCode);
 
@@ -316,30 +322,34 @@ function Destination() {
                         return (
                             <div
                                 key={day.date}
-                                className="rounded-2xl border border-[var(--color-border)] p-4"
+                                className="rounded-3xl border border-[var(--color-border)] bg-white p-5 transition duration-300 hover:-translate-y-1 hover:shadow-md"
                             >
 
-                                <p className="text-sm text-[var(--color-muted)]">
+                                {/* Day */}
+                                <p className="text-sm font-medium text-[var(--color-muted)]">
                                     {date.toLocaleDateString("en-US", {
                                         weekday: "short",
                                     })}
                                 </p>
 
-                                <div className="mt-4 text-3xl">
+                                {/* Weather icon */}
+                                <div className="mt-6 text-4xl">
                                     {description.icon}
                                 </div>
 
-                                <p className="mt-3 text-sm">
+                                {/* Weather description */}
+                                <p className="mt-4 text-sm font-medium">
                                     {description.label}
                                 </p>
 
-                                <div className="mt-4 flex gap-2">
+                                {/* Temperatures */}
+                                <div className="mt-5 flex items-baseline gap-2">
 
-                                    <span className="font-medium">
+                                    <span className="text-2xl font-semibold">
                                         {Math.round(day.temperatureMax)}°
                                     </span>
 
-                                    <span className="text-[var(--color-muted)]">
+                                    <span className="text-sm text-[var(--color-muted)]">
                                         {Math.round(day.temperatureMin)}°
                                     </span>
 
@@ -350,6 +360,7 @@ function Destination() {
                     })}
 
                 </div>
+
             </section>
 
             {/* Things to do */}
