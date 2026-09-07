@@ -16,6 +16,9 @@ function Destination() {
     const [selectedPlace, setSelectedPlace] =
         useState<Place | null>(null);
 
+    const [tripPlaces, setTripPlaces] =
+        useState<Place[]>([]);
+
     const [destination, setDestination] =
         useState<DestinationType | null>(null);
 
@@ -26,6 +29,19 @@ function Destination() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    function addToTrip(place: Place) {
+        setTripPlaces((currentPlaces) => {
+            const alreadyAdded = currentPlaces.some(
+                (item) => item.id === place.id,
+            );
+
+            if (alreadyAdded) {
+                return currentPlaces;
+            }
+
+            return [...currentPlaces, place];
+        });
+    }
     useEffect(() => {
         async function loadDestination() {
             if (!name) return;
@@ -216,25 +232,38 @@ function Destination() {
                 </div>
 
                 {places.length > 0 ? (
-                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {places.map((place) => (
-                            <button
+                            <div
                                 key={place.id}
-                                onClick={() => setSelectedPlace(place)}
-                                className="rounded-2xl border border-[var(--color-border)] p-5 text-left transition hover:-translate-y-1 hover:shadow-md"
+                                className="rounded-2xl border border-[var(--color-border)] p-5 transition hover:-translate-y-1 hover:shadow-md"
                             >
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-background)]">
-                                    📍
-                                </div>
+                                <button
+                                    onClick={() => setSelectedPlace(place)}
+                                    className="w-full text-left"
+                                >
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-background)]">
+                                        📍
+                                    </div>
 
-                                <h3 className="mt-4 font-semibold">
-                                    {place.name}
-                                </h3>
+                                    <h3 className="mt-4 font-semibold">
+                                        {place.name}
+                                    </h3>
 
-                                <p className="mt-1 text-sm capitalize text-[var(--color-muted)]">
-                                    {place.type.replaceAll("_", " ")}
-                                </p>
-                            </button>
+                                    <p className="mt-1 text-sm capitalize text-[var(--color-muted)]">
+                                        {place.type.replaceAll("_", " ")}
+                                    </p>
+                                </button>
+
+                                <button
+                                    onClick={() => addToTrip(place)}
+                                    className="mt-5 w-full rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                                >
+                                    {tripPlaces.some((item) => item.id === place.id)
+                                        ? "✓ Added to trip"
+                                        : "+ Add to trip"}
+                                </button>
+                            </div>
                         ))}
                     </div>
                 ) : (
@@ -263,6 +292,60 @@ function Destination() {
                     />
                 </section>
             )}
+
+            <section className="mt-16">
+                <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                    Your trip
+                </p>
+
+                <h2 className="mt-2 text-3xl font-semibold">
+                    My trip to {destination.name}
+                </h2>
+
+                {tripPlaces.length === 0 ? (
+                    <p className="mt-4 text-[var(--color-muted)]">
+                        You haven't added any places yet.
+                    </p>
+                ) : (
+                    <div className="mt-6 space-y-3">
+                        {tripPlaces.map((place, index) => (
+                            <div
+                                key={place.id}
+                                className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] p-4"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-sm">
+                                        {index + 1}
+                                    </span>
+
+                                    <div>
+                                        <p className="font-medium">
+                                            {place.name}
+                                        </p>
+
+                                        <p className="text-sm capitalize text-[var(--color-muted)]">
+                                            {place.type.replaceAll("_", " ")}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() =>
+                                        setTripPlaces((currentPlaces) =>
+                                            currentPlaces.filter(
+                                                (item) => item.id !== place.id,
+                                            ),
+                                        )
+                                    }
+                                    className="text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
             {/* Coordinates */}
             <section className="mt-8 rounded-3xl border border-[var(--color-border)] p-6">
                 <p className="text-sm text-[var(--color-muted)]">
