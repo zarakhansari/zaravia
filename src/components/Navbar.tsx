@@ -39,10 +39,10 @@ function Navbar() {
 
                     <Link
                         to="/your-trip"
-                        className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-5 py-2.5 text-sm font-medium transition hover:bg-[var(--color-background)]"
+                        className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--color-background)]"
                     >
                         <span className="text-base">♡</span>
-                        Your trip
+                        <span>Your trip</span>
                     </Link>
                 </div>
 
@@ -112,13 +112,13 @@ function Navbar() {
                         </NavLink>
 
                         <Link
-                            to="/"
+                            to="/your-trip"
                             onClick={closeMenu}
-                            className="w-fit rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                            className="flex items-center gap-2 text-sm font-medium text-[var(--color-text)] transition hover:text-[var(--color-accent)]"
                         >
-                            Plan a trip
+                            <span>♡</span>
+                            <span>Your trip</span>
                         </Link>
-
                     </div>
                 </div>
             )}

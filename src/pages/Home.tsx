@@ -163,10 +163,14 @@ function Home() {
                 <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-7xl flex-col items-center justify-center px-6 text-center lg:px-8">
                     {/* Main headline */}
                     <div className="max-w-5xl text-white">
-                        <h1 className="text-5xl font-semibold uppercase leading-[0.95] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-                            Plan less.
-                            <br />
-                            Experience more.
+                        <h1 className="mt-6 text-4xl font-semibold leading-[1] tracking-[-0.03em] sm:text-6xl lg:text-7xl lg:leading-[0.95] lg:tracking-[-0.04em]">
+                            Travel should feel
+                            <br className="hidden lg:block" />
+                            exciting,
+                            <br className="hidden lg:block" />
+                            <span className="text-[var(--color-accent)]">
+                                not complicated.
+                            </span>
                         </h1>
 
                         <p className="mt-6 text-xs font-medium uppercase tracking-[0.3em] text-white/80 sm:text-sm">
