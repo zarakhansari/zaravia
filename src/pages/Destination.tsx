@@ -525,62 +525,105 @@ function Destination() {
             )}
 
             {/* Your trip */}
-            <section className="mt-16">
+            {/* Your trip */}
+            <section className="mt-20">
 
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                    Your trip
-                </p>
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 
-                <h2 className="mt-2 text-3xl font-semibold">
-                    My trip to {destination.name}
-                </h2>
+                    <div>
+                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                            Your trip
+                        </p>
+
+                        <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                            My trip to {destination.name}
+                        </h2>
+
+                        <p className="mt-2 text-[var(--color-muted)]">
+                            Places you've added to your itinerary.
+                        </p>
+                    </div>
+
+                    {tripPlaces.length > 0 && (
+                        <p className="text-sm text-[var(--color-muted)]">
+                            {tripPlaces.length}{" "}
+                            {tripPlaces.length === 1
+                                ? "place"
+                                : "places"}{" "}
+                            added
+                        </p>
+                    )}
+
+                </div>
 
                 {tripPlaces.length === 0 ? (
 
-                    <p className="mt-4 text-[var(--color-muted)]">
-                        You haven't added any places yet.
-                    </p>
+                    /* Empty state */
+                    <div className="mt-8 rounded-3xl border border-[var(--color-border)] bg-white p-12 text-center">
+
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-background)] text-3xl">
+                            🧳
+                        </div>
+
+                        <h3 className="mt-5 text-xl font-semibold">
+                            Your trip is empty
+                        </h3>
+
+                        <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-muted)]">
+                            Add places from the suggestions above to
+                            start building your trip.
+                        </p>
+
+                    </div>
 
                 ) : (
 
-                    <div className="mt-6 space-y-3">
+                    /* Itinerary */
+                    <div className="mt-8 overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white">
 
                         {tripPlaces.map((place, index) => (
 
                             <div
                                 key={place.id}
-                                className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] p-4"
+                                className="group flex items-center gap-5 border-b border-[var(--color-border)] p-5 last:border-b-0 sm:p-6"
                             >
 
-                                <div className="flex items-center gap-4">
+                                {/* Number */}
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-background)] text-sm font-semibold">
+                                    {String(index + 1).padStart(2, "0")}
+                                </div>
 
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-sm">
-                                        {index + 1}
-                                    </span>
+                                {/* Place information */}
+                                <div className="min-w-0 flex-1">
 
-                                    <div>
+                                    <h3 className="truncate font-semibold">
+                                        {place.name}
+                                    </h3>
 
-                                        <p className="font-medium">
-                                            {place.name}
-                                        </p>
-
-                                        <p className="text-sm capitalize text-[var(--color-muted)]">
-                                            {place.type.replaceAll("_", " ")}
-                                        </p>
-
-                                    </div>
+                                    <p className="mt-1 text-sm capitalize text-[var(--color-muted)]">
+                                        {place.type.replaceAll("_", " ")}
+                                    </p>
 
                                 </div>
 
+                                {/* View on map */}
+                                <button
+                                    onClick={() => setSelectedPlace(place)}
+                                    className="hidden rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--color-background)] sm:block"
+                                >
+                                    View
+                                </button>
+
+                                {/* Remove */}
                                 <button
                                     onClick={() =>
                                         setTripPlaces((currentPlaces) =>
                                             currentPlaces.filter(
-                                                (item) => item.id !== place.id
-                                            )
+                                                (item) => item.id !== place.id,
+                                            ),
                                         )
                                     }
-                                    className="text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
+                                    className="text-sm text-[var(--color-muted)] transition hover:text-[var(--color-text)]"
                                 >
                                     Remove
                                 </button>
@@ -595,7 +638,7 @@ function Destination() {
 
             </section>
 
-            {/* Coordinates */}
+            {/* Coordinates
             <section className="mt-8 rounded-3xl border border-[var(--color-border)] p-6">
 
                 <p className="text-sm text-[var(--color-muted)]">
@@ -607,7 +650,7 @@ function Destination() {
                     {destination.longitude.toFixed(4)}
                 </p>
 
-            </section>
+            </section> */}
 
         </main>
     );
