@@ -38,10 +38,10 @@ function Navbar() {
                     </NavLink>
 
                     <Link
-                        to="/"
+                        to="/YourTrip"
                         className="rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
                     >
-                        Plan a trip
+                        Your Trip
                     </Link>
                 </div>
 
