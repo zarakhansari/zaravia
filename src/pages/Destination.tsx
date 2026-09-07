@@ -34,26 +34,29 @@ function Destination() {
     const [loading, setLoading] =
         useState(true);
 
-    const [error, setError] =
-        useState("");
-
     const [retrying, setRetrying] =
         useState(false);
 
-    const [countdown, setCountdown] =
-        useState(5);
+    const [error, setError] =
+        useState("");
 
     /*
      * Load destination information
      */
     useEffect(() => {
+        let retryTimer: ReturnType<typeof setTimeout>;
+
         async function loadDestination() {
-            if (!name) return;
+            if (!name) {
+                setError("Destination not found.");
+                setLoading(false);
+                return;
+            }
 
             try {
                 setLoading(true);
-                setError("");
                 setRetrying(false);
+                setError("");
 
                 // Get destination coordinates
                 const results = await searchDestinations(name);
@@ -70,7 +73,7 @@ function Destination() {
                 // Get places using coordinates
                 const placesData = await getPlaces(
                     selectedDestination.latitude,
-                    selectedDestination.longitude,
+                    selectedDestination.longitude
                 );
 
                 setPlaces(placesData);
@@ -78,61 +81,44 @@ function Destination() {
                 // Get weather using coordinates
                 const weatherData = await getWeather(
                     selectedDestination.latitude,
-                    selectedDestination.longitude,
+                    selectedDestination.longitude
                 );
 
                 setWeather(weatherData);
             } catch (err) {
-                console.log("Destination error:", err);
-
-                const errorMessage =
-                    err instanceof Error ? err.message : "";
-
-                console.log(
-                    "Destination error message:",
-                    errorMessage,
-                );
+                console.error("Destination error:", err);
 
                 /*
-                 * Show the relax animation for
-                 * HTTP 429 or HTTP 504 errors.
+                 * If the API returns 429 or 504,
+                 * show the retry animation and reload automatically.
                  */
                 if (
-                    errorMessage.includes("429") ||
-                    errorMessage.includes("504")
+                    err instanceof Response &&
+                    (err.status === 429 || err.status === 504)
                 ) {
                     setRetrying(true);
-                    setCountdown(5);
-                } else {
-                    setError(
-                        "Could not load destination information.",
-                    );
+
+                    retryTimer = setTimeout(() => {
+                        window.location.reload();
+                    }, 5000);
+
+                    return;
                 }
+
+                setError(
+                    "Could not load destination information."
+                );
             } finally {
                 setLoading(false);
             }
         }
 
         loadDestination();
+
+        return () => {
+            clearTimeout(retryTimer);
+        };
     }, [name]);
-
-    /*
-     * Countdown and automatic reload
-     */
-    useEffect(() => {
-        if (!retrying) return;
-
-        if (countdown === 0) {
-            window.location.reload();
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            setCountdown((current) => current - 1);
-        }, 1000);
-
-        return () => clearTimeout(timer);
-    }, [retrying, countdown]);
 
     /*
      * Add a place to the trip
@@ -140,7 +126,7 @@ function Destination() {
     function addToTrip(place: Place) {
         setTripPlaces((currentPlaces) => {
             const alreadyAdded = currentPlaces.some(
-                (item) => item.id === place.id,
+                (item) => item.id === place.id
             );
 
             if (alreadyAdded) {
@@ -152,27 +138,13 @@ function Destination() {
     }
 
     /*
-     * Normal loading screen
+     * Loading / retry animation
      */
-    if (loading) {
-        return (
-            <main className="flex min-h-[calc(100vh-80px)] items-center justify-center px-6">
-                <p className="text-[var(--color-muted)]">
-                    Loading destination...
-                </p>
-            </main>
-        );
-    }
-
-    /*
-     * 429 / 504 ERROR SCREEN
-     */
-    if (retrying) {
+    if (loading || retrying) {
         return (
             <main className="flex min-h-[calc(100vh-80px)] items-center justify-center px-6">
                 <div className="flex max-w-md flex-col items-center text-center">
 
-                    {/* Relax loader */}
                     <div className="mb-6 h-72 w-72">
                         <DotLottieReact
                             src="/animation/relax-loader.lottie"
@@ -181,27 +153,37 @@ function Destination() {
                         />
                     </div>
 
-                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                        Just a moment
-                    </p>
+                    {retrying ? (
+                        <>
+                            <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                                Just a moment
+                            </p>
 
-                    <h1 className="mt-3 text-3xl font-semibold">
-                        We're having a little trouble
-                    </h1>
+                            <h1 className="mt-3 text-3xl font-semibold">
+                                We're having a little trouble
+                            </h1>
 
-                    <p className="mt-4 text-[var(--color-muted)]">
-                        Don't worry, we're trying to load your
-                        destination again.
-                    </p>
+                            <p className="mt-4 text-[var(--color-muted)]">
+                                Don't worry, we're trying to load your
+                                destination again.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                                Exploring
+                            </p>
 
-                    <p className="mt-6 text-sm text-[var(--color-muted)]">
-                        Reloading in
-                    </p>
+                            <h1 className="mt-3 text-3xl font-semibold">
+                                Finding your destination
+                            </h1>
 
-                    <p className="mt-1 text-4xl font-semibold">
-                        {countdown}
-                    </p>
-
+                            <p className="mt-4 text-[var(--color-muted)]">
+                                We're gathering everything you need for
+                                your trip.
+                            </p>
+                        </>
+                    )}
                 </div>
             </main>
         );
@@ -406,7 +388,7 @@ function Destination() {
                                     className="mt-5 w-full rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
                                 >
                                     {tripPlaces.some(
-                                        (item) => item.id === place.id,
+                                        (item) => item.id === place.id
                                     )
                                         ? "✓ Added to trip"
                                         : "+ Add to trip"}
@@ -505,8 +487,8 @@ function Destination() {
                                     onClick={() =>
                                         setTripPlaces((currentPlaces) =>
                                             currentPlaces.filter(
-                                                (item) => item.id !== place.id,
-                                            ),
+                                                (item) => item.id !== place.id
+                                            )
                                         )
                                     }
                                     className="text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"

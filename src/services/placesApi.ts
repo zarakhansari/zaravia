@@ -1,23 +1,17 @@
 import type { Place } from "../types/place";
 
-interface OverpassElement {
-    id: number;
-    lat?: number;
-    lon?: number;
-    center?: {
+interface GeoapifyFeature {
+    properties: {
+        place_id: string;
+        name?: string;
         lat: number;
         lon: number;
-    };
-    tags?: {
-        name?: string;
-        tourism?: string;
-        amenity?: string;
-        leisure?: string;
+        categories?: string[];
     };
 }
 
-interface OverpassResponse {
-    elements: OverpassElement[];
+interface GeoapifyResponse {
+    features: GeoapifyFeature[];
 }
 
 // Cache completed requests
@@ -66,21 +60,23 @@ async function fetchPlaces(
     latitude: number,
     longitude: number,
 ): Promise<Place[]> {
-    const query = `
-    [out:json];
-    (
-      node["tourism"](around:5000,${latitude},${longitude});
-      way["tourism"](around:5000,${latitude},${longitude});
-    );
-    out center;
-  `;
+    const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY;
+
+    if (!apiKey) {
+        throw new Error("Geoapify API key is missing");
+    }
+
+    const params = new URLSearchParams({
+        categories: "tourism",
+        filter: `circle:${longitude},${latitude},5000`,
+        bias: `proximity:${longitude},${latitude}`,
+        limit: "20",
+        lang: "en",
+        apiKey,
+    });
 
     const response = await fetch(
-        "https://overpass-api.de/api/interpreter",
-        {
-            method: "POST",
-            body: query,
-        },
+        `https://api.geoapify.com/v2/places?${params.toString()}`,
     );
 
     if (!response.ok) {
@@ -89,26 +85,22 @@ async function fetchPlaces(
         );
     }
 
-    const data: OverpassResponse = await response.json();
+    const data: GeoapifyResponse = await response.json();
 
-    return data.elements
-        .filter((place) => place.tags?.name)
+    return data.features
+        .filter((place) => place.properties.name)
         .map((place) => ({
-            id: String(place.id),
-            name: place.tags?.name ?? "Unknown place",
+            id: place.properties.place_id,
+
+            name: place.properties.name ?? "Unknown place",
+
             type:
-                place.tags?.tourism ??
-                place.tags?.amenity ??
-                place.tags?.leisure ??
+                place.properties.categories?.[0] ??
                 "Place",
-            latitude:
-                place.lat ??
-                place.center?.lat ??
-                latitude,
-            longitude:
-                place.lon ??
-                place.center?.lon ??
-                longitude,
+
+            latitude: place.properties.lat,
+
+            longitude: place.properties.lon,
         }))
         .slice(0, 12);
 }
