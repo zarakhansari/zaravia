@@ -2,27 +2,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { searchDestinations } from "../services/geocodingApi";
+import { searchDestinationImage } from "../services/imageApi";
+
 import type { Destination } from "../types/destination";
+import type { DestinationImage } from "../types/image";
 
 function Explore() {
     const navigate = useNavigate();
 
     const [query, setQuery] = useState("");
-    const [destinations, setDestinations] =
-        useState<Destination[]>([]);
+    const [destinations, setDestinations] = useState<Destination[]>([]);
+    const [destinationImages, setDestinationImages] =
+        useState<Record<string, DestinationImage | null>>({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    const [loading, setLoading] =
-        useState(true);
-
-    const [error, setError] =
-        useState("");
-
-    /*
-     * Destinations to show when the page first opens.
-     *
-     * The names are only search queries.
-     * The actual destination data comes from the API.
-     */
     const popularDestinations = [
         "Amsterdam",
         "Paris",
@@ -33,7 +27,7 @@ function Explore() {
     ];
 
     /*
-     * Load popular destinations
+     * Load popular destinations and their images
      */
     useEffect(() => {
         async function loadPopularDestinations() {
@@ -42,23 +36,44 @@ function Explore() {
                 setError("");
 
                 const results = await Promise.all(
-                    popularDestinations.map((city) =>
-                        searchDestinations(city),
+                    popularDestinations.map(async (city) => {
+                        const [destinationResults, image] =
+                            await Promise.all([
+                                searchDestinations(city),
+                                searchDestinationImage(city),
+                            ]);
+
+                        return {
+                            destination: destinationResults[0] ?? null,
+                            image,
+                        };
+                    }),
+                );
+
+                const validResults = results.filter(
+                    (result) => result.destination !== null,
+                );
+
+                setDestinations(
+                    validResults.map(
+                        (result) => result.destination!,
                     ),
                 );
 
-                const firstResults = results
-                    .map((result) => result[0])
-                    .filter(
-                        (destination): destination is Destination =>
-                            destination !== undefined,
-                    );
+                const images: Record<
+                    string,
+                    DestinationImage | null
+                > = {};
 
-                setDestinations(firstResults);
-            } catch {
-                setError(
-                    "Could not load destinations. Please try again.",
-                );
+                validResults.forEach((result) => {
+                    images[result.destination!.name] =
+                        result.image;
+                });
+
+                setDestinationImages(images);
+            } catch (err) {
+                console.error("Explore error:", err);
+                setError("Could not load destinations.");
             } finally {
                 setLoading(false);
             }
@@ -68,10 +83,12 @@ function Explore() {
     }, []);
 
     /*
-     * Search destinations
+     * Search for a destination
      */
     async function handleSearch() {
-        if (!query.trim()) {
+        const trimmedQuery = query.trim();
+
+        if (!trimmedQuery) {
             return;
         }
 
@@ -79,259 +96,303 @@ function Explore() {
             setLoading(true);
             setError("");
 
-            const results = await searchDestinations(query);
+            const results = await searchDestinations(
+                trimmedQuery,
+            );
+
+            if (results.length === 0) {
+                setDestinations([]);
+                return;
+            }
 
             setDestinations(results);
-        } catch {
-            setError(
-                "Could not search destinations. Please try again.",
+
+            /*
+             * Load images for search results
+             */
+            const images: Record<
+                string,
+                DestinationImage | null
+            > = {};
+
+            await Promise.all(
+                results.map(async (destination) => {
+                    const image =
+                        await searchDestinationImage(
+                            destination.name,
+                        );
+
+                    images[destination.name] = image;
+                }),
             );
-            setDestinations([]);
+
+            setDestinationImages((current) => ({
+                ...current,
+                ...images,
+            }));
+        } catch (err) {
+            console.error("Search error:", err);
+            setError(
+                "Could not search for destinations.",
+            );
         } finally {
             setLoading(false);
         }
     }
 
     /*
-     * Open destination page
+     * Search when pressing Enter
      */
-    function handleDestinationClick(
-        destination: Destination,
+    function handleKeyDown(
+        event: React.KeyboardEvent<HTMLInputElement>,
     ) {
-        navigate(
-            `/destination/${encodeURIComponent(
-                destination.name,
-            )}`,
-            {
-                state: {
-                    destination,
-                },
-            },
-        );
+        if (event.key === "Enter") {
+            handleSearch();
+        }
     }
 
     return (
-        <main className="min-h-screen">
+        <main className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
 
             {/* Hero */}
-            <section className="mx-auto max-w-7xl px-6 pb-12 pt-16 lg:px-8 lg:pt-24">
+            <section className="max-w-3xl">
+                <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                    Explore
+                </p>
 
-                <div className="max-w-3xl">
+                <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">
+                    Find your next adventure.
+                </h1>
 
-                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                        Explore the world
-                    </p>
-
-                    <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">
-                        Find your next
-                        <br />
-                        adventure.
-                    </h1>
-
-                    <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--color-muted)]">
-                        Discover destinations, check the weather,
-                        find places to visit, and start planning your
-                        next trip.
-                    </p>
-
-                </div>
-
-                {/* Search */}
-                <div className="mt-10 max-w-2xl">
-
-                    <div className="flex items-center rounded-full border border-[var(--color-border)] bg-white p-2 shadow-sm">
-
-                        <div className="flex flex-1 items-center">
-
-                            <span className="ml-4 mr-3 text-xl">
-                                ⌕
-                            </span>
-
-                            <input
-                                type="text"
-                                value={query}
-                                onChange={(event) =>
-                                    setQuery(event.target.value)
-                                }
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                        handleSearch();
-                                    }
-                                }}
-                                placeholder="Search for a city..."
-                                className="w-full bg-transparent px-2 py-3 text-sm outline-none"
-                            />
-
-                        </div>
-
-                        <button
-                            onClick={handleSearch}
-                            disabled={loading || !query.trim()}
-                            className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            Search
-                        </button>
-
-                    </div>
-
-                </div>
-
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--color-muted)]">
+                    Discover destinations, explore interesting
+                    places, and find inspiration for your next trip.
+                </p>
             </section>
 
-            {/* Destinations */}
-            <section className="mx-auto max-w-7xl px-6 pb-20 lg:px-8">
+            {/* Search */}
+            <section className="mt-10">
+                <div className="flex flex-col gap-3 sm:flex-row">
 
-                <div className="flex items-end justify-between">
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(event) =>
+                            setQuery(event.target.value)
+                        }
+                        onKeyDown={handleKeyDown}
+                        placeholder="Search for a city..."
+                        className="h-14 flex-1 rounded-full border border-[var(--color-border)] bg-white px-6 outline-none transition focus:border-[var(--color-text)]"
+                    />
 
-                    <div>
-
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                            {query
-                                ? "Search results"
-                                : "Popular destinations"}
-                        </p>
-
-                        <h2 className="mt-2 text-3xl font-semibold">
-                            {query
-                                ? `Results for "${query}"`
-                                : "Where will you go?"}
-                        </h2>
-
-                    </div>
-
-                    {!query && (
-                        <span className="hidden text-sm text-[var(--color-muted)] sm:block">
-                            Explore 6 destinations
-                        </span>
-                    )}
+                    <button
+                        onClick={handleSearch}
+                        className="h-14 rounded-full bg-[var(--color-accent)] px-8 text-sm font-medium text-white transition hover:opacity-90"
+                    >
+                        Search
+                    </button>
 
                 </div>
+            </section>
 
-                {/* Error */}
-                {error && (
-                    <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-white p-6">
-                        <p className="text-[var(--color-muted)]">
-                            {error}
+            {/* Error */}
+            {error && (
+                <div className="mt-8 rounded-3xl border border-[var(--color-border)] bg-white p-8 text-center">
+                    <p className="text-lg font-medium">
+                        {error}
+                    </p>
+
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-5 rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90"
+                    >
+                        Try again
+                    </button>
+                </div>
+            )}
+
+            {/* Popular destinations */}
+            {!error && (
+                <section className="mt-20">
+
+                    {/* Section heading */}
+                    <div>
+                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                            Popular destinations
                         </p>
 
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="mt-4 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-                        >
-                            Try again
-                        </button>
+                        <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                            Start exploring
+                        </h2>
+
+                        <p className="mt-2 text-[var(--color-muted)]">
+                            Explore some of the most popular
+                            destinations.
+                        </p>
                     </div>
-                )}
 
-                {/* Loading */}
-                {loading && !error && (
-                    <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* Loading */}
+                    {loading ? (
+                        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-                        {[1, 2, 3, 4, 5, 6].map(
-                            (item) => (
+                            {popularDestinations.map((city) => (
                                 <div
-                                    key={item}
-                                    className="h-64 animate-pulse rounded-3xl border border-[var(--color-border)] bg-white"
-                                />
-                            ),
-                        )}
+                                    key={city}
+                                    className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white"
+                                >
+                                    {/* Image skeleton */}
+                                    <div className="h-56 animate-pulse bg-[var(--color-border)]" />
 
-                    </div>
-                )}
+                                    <div className="p-6">
 
-                {/* Cards */}
-                {!loading &&
-                    !error &&
-                    destinations.length > 0 && (
-                        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                        <div className="h-3 w-24 animate-pulse rounded bg-[var(--color-border)]" />
+
+                                        <div className="mt-4 h-7 w-40 animate-pulse rounded bg-[var(--color-border)]" />
+
+                                        <div className="mt-2 h-4 w-24 animate-pulse rounded bg-[var(--color-border)]" />
+
+                                        <div className="mt-6 h-10 w-36 animate-pulse rounded-full bg-[var(--color-border)]" />
+
+                                    </div>
+                                </div>
+                            ))}
+
+                        </div>
+                    ) : destinations.length > 0 ? (
+
+                        /* Destination cards */
+                        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 
                             {destinations.map(
-                                (destination, index) => (
-                                    <button
-                                        key={destination.id}
-                                        onClick={() =>
-                                            handleDestinationClick(
-                                                destination,
-                                            )
-                                        }
-                                        className="group overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white text-left transition duration-300 hover:-translate-y-1 hover:shadow-lg"
-                                    >
+                                (destination, index) => {
+                                    const image =
+                                        destinationImages[
+                                        destination.name
+                                        ];
 
-                                        {/* Card visual */}
-                                        <div className="relative flex h-44 items-end overflow-hidden bg-[var(--color-background)] p-6">
+                                    return (
+                                        <article
+                                            key={destination.id}
+                                            className="group overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                                        >
 
-                                            <div className="absolute -right-8 -top-12 h-40 w-40 rounded-full bg-[var(--color-accent)]/10 transition duration-500 group-hover:scale-125" />
+                                            {/* Image */}
+                                            <button
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/destination/${encodeURIComponent(
+                                                            destination.name,
+                                                        )}`,
+                                                    )
+                                                }
+                                                className="relative block h-56 w-full overflow-hidden bg-[var(--color-background)] text-left"
+                                            >
+                                                {image ? (
+                                                    <>
+                                                        <img
+                                                            src={image.url}
+                                                            alt={`View of ${destination.name}`}
+                                                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                                        />
 
-                                            <div className="absolute right-8 top-8 text-6xl opacity-70">
-                                                {["🌍", "✈️", "☀️", "🏛️", "🌊", "🗺️"][
-                                                    index % 6
-                                                ]}
-                                            </div>
+                                                        <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
+                                                    </>
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-5xl">
+                                                        🌍
+                                                    </div>
+                                                )}
 
-                                            <div className="relative">
+                                                {/* Number */}
+                                                <div className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-xs font-semibold shadow-sm">
+                                                    {String(
+                                                        index + 1,
+                                                    ).padStart(2, "0")}
+                                                </div>
+                                            </button>
+
+                                            {/* Card content */}
+                                            <div className="p-6">
 
                                                 <p className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--color-muted)]">
                                                     Destination
                                                 </p>
 
-                                                <h3 className="mt-1 text-2xl font-semibold">
+                                                <h3 className="mt-2 text-2xl font-semibold">
                                                     {destination.name}
                                                 </h3>
 
-                                            </div>
+                                                <p className="mt-1 text-sm text-[var(--color-muted)]">
+                                                    {destination.country}
+                                                </p>
 
-                                        </div>
-
-                                        {/* Card information */}
-                                        <div className="p-6">
-
-                                            <p className="text-sm text-[var(--color-muted)]">
-                                                {destination.country}
-                                            </p>
-
-                                            <div className="mt-6 flex items-center justify-between">
-
-                                                <span className="text-sm font-medium">
+                                                <button
+                                                    onClick={() =>
+                                                        navigate(
+                                                            `/destination/${encodeURIComponent(
+                                                                destination.name,
+                                                            )}`,
+                                                        )
+                                                    }
+                                                    className="mt-6 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                                                >
                                                     Explore destination
-                                                </span>
+                                                </button>
 
-                                                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] transition group-hover:bg-[var(--color-text)] group-hover:text-white">
-                                                    →
-                                                </span>
+                                                {/* Unsplash attribution */}
+                                                {image && (
+                                                    <p className="mt-4 text-xs text-[var(--color-muted)]">
+                                                        Photo by{" "}
+                                                        <a
+                                                            href={
+                                                                image.photographerUrl
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            onClick={(event) =>
+                                                                event.stopPropagation()
+                                                            }
+                                                            className="underline hover:text-[var(--color-text)]"
+                                                        >
+                                                            {
+                                                                image.photographerName
+                                                            }
+                                                        </a>{" "}
+                                                        on Unsplash
+                                                    </p>
+                                                )}
 
                                             </div>
-
-                                        </div>
-
-                                    </button>
-                                ),
+                                        </article>
+                                    );
+                                },
                             )}
 
                         </div>
-                    )}
 
-                {/* No results */}
-                {!loading &&
-                    !error &&
-                    destinations.length === 0 && (
+                    ) : (
+
+                        /* No results */
                         <div className="mt-8 rounded-3xl border border-[var(--color-border)] bg-white p-12 text-center">
 
-                            <div className="text-5xl">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-background)] text-3xl">
                                 🌍
                             </div>
 
-                            <h3 className="mt-5 text-2xl font-semibold">
+                            <h3 className="mt-5 text-xl font-semibold">
                                 No destinations found
                             </h3>
 
-                            <p className="mt-2 text-[var(--color-muted)]">
-                                Try searching for another city.
+                            <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-muted)]">
+                                We couldn't find a destination
+                                matching your search.
                             </p>
 
                         </div>
                     )}
 
-            </section>
+                </section>
+            )}
 
         </main>
     );
