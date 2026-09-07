@@ -224,61 +224,78 @@ function Destination() {
     return (
         <main className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
 
-            {/* Destination header */}
-            <section>
-                <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                    Your destination
-                </p>
+            {/* Destination hero */}
+            <section className="mt-4">
+                <div className="grid items-center gap-10 lg:grid-cols-[1fr_380px]">
 
-                <h1 className="mt-3 text-5xl font-semibold">
-                    {destination.name}
-                </h1>
+                    {/* Destination information */}
+                    <div>
+                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                            Your destination
+                        </p>
 
-                <p className="mt-3 text-lg text-[var(--color-muted)]">
-                    {destination.country}
-                </p>
-            </section>
+                        <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">
+                            {destination.name}
+                        </h1>
 
-            {/* Weather */}
-            {weather && weatherDescription && (
-                <section className="mt-10 max-w-md rounded-3xl bg-[var(--color-text)] p-8 text-white">
+                        <p className="mt-3 text-xl text-[var(--color-muted)]">
+                            {destination.country}
+                        </p>
 
-                    <p className="text-sm opacity-70">
-                        Current weather
-                    </p>
+                        <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--color-muted)]">
+                            Discover places worth visiting, check the local
+                            weather, and start planning your trip to{" "}
+                            {destination.name}.
+                        </p>
+                    </div>
 
-                    <div className="mt-5 flex items-center gap-5">
+                    {/* Weather card */}
+                    {weather && weatherDescription && (
+                        <div className="rounded-3xl bg-[var(--color-text)] p-8 text-white shadow-sm">
 
-                        <span className="text-6xl">
-                            {weatherDescription.icon}
-                        </span>
-
-                        <div>
-                            <p className="text-5xl font-semibold">
-                                {Math.round(weather.temperature)}°C
+                            <p className="text-sm font-medium uppercase tracking-[0.15em] opacity-60">
+                                Current weather
                             </p>
 
-                            <p className="mt-1 opacity-70">
-                                {weatherDescription.label}
-                            </p>
+                            <div className="mt-6 flex items-center gap-5">
+
+                                <span className="text-6xl">
+                                    {weatherDescription.icon}
+                                </span>
+
+                                <div>
+                                    <p className="text-5xl font-semibold">
+                                        {Math.round(weather.temperature)}°C
+                                    </p>
+
+                                    <p className="mt-1 text-sm opacity-70">
+                                        {weatherDescription.label}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            <div className="mt-7 border-t border-white/15 pt-5">
+
+                                <div className="flex items-center justify-between">
+
+                                    <span className="text-sm opacity-60">
+                                        Wind
+                                    </span>
+
+                                    <span className="text-sm font-medium">
+                                        {Math.round(weather.windSpeed)} km/h
+                                    </span>
+
+                                </div>
+
+                            </div>
+
                         </div>
+                    )}
 
-                    </div>
-
-                    <div className="mt-6 border-t border-white/20 pt-4">
-
-                        <p className="text-sm opacity-70">
-                            Wind
-                        </p>
-
-                        <p className="mt-1 text-lg">
-                            {Math.round(weather.windSpeed)} km/h
-                        </p>
-
-                    </div>
-
-                </section>
-            )}
+                </div>
+            </section>
 
             {/* 5-day forecast */}
             <section className="mt-10">
