@@ -171,9 +171,8 @@ function Explore() {
             </section>
 
             {/* Search */}
-            <section className="mt-10">
-                <div className="flex flex-col gap-3 sm:flex-row">
-
+            <section className="mt-8 max-w-2xl sm:mt-10">
+                <div className="flex w-full items-center rounded-full border border-[var(--color-border)] bg-white p-1.5 shadow-sm transition focus-within:border-[var(--color-text)] sm:p-2">
                     <input
                         type="text"
                         value={query}
@@ -182,16 +181,15 @@ function Explore() {
                         }
                         onKeyDown={handleKeyDown}
                         placeholder="Search for a city..."
-                        className="h-14 flex-1 rounded-full border border-[var(--color-border)] bg-white px-6 outline-none transition focus:border-[var(--color-text)]"
+                        className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-[var(--color-muted)] sm:px-6 sm:py-3.5 sm:text-base"
                     />
 
                     <button
                         onClick={handleSearch}
-                        className="h-14 rounded-full bg-[var(--color-accent)] px-8 text-sm font-medium text-white transition hover:opacity-90"
+                        className="shrink-0 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 sm:px-8 sm:py-3.5 sm:text-base"
                     >
                         Search
                     </button>
-
                 </div>
             </section>
 
