@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 
 import { searchDestinations } from "../services/geocodingApi";
@@ -17,6 +17,14 @@ function Explore() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const [searchedCity, setSearchedCity] = useState("");
+    const [suggestions, setSuggestions] = useState<Destination[]>([]);
+    const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+
+    const searchContainerRef = useRef<HTMLDivElement>(null);
+    const suggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isSelectingRef = useRef(false);
+
     const popularDestinations = [
         "Amsterdam",
         "Paris",
@@ -26,61 +34,124 @@ function Explore() {
         "Copenhagen",
     ];
 
+    async function loadPopularDestinations() {
+        try {
+            setLoading(true);
+            setError("");
+
+            const results = await Promise.all(
+                popularDestinations.map(async (city) => {
+                    const [destinationResults, image] =
+                        await Promise.all([
+                            searchDestinations(city).catch(() => []),
+                            searchDestinationImage(city).catch(() => null),
+                        ]);
+
+                    return {
+                        destination: destinationResults[0] ?? null,
+                        image,
+                    };
+                }),
+            );
+
+            const validResults = results.filter(
+                (result) => result.destination !== null,
+            );
+
+            setDestinations(
+                validResults.map(
+                    (result) => result.destination!,
+                ),
+            );
+
+            const images: Record<
+                string,
+                DestinationImage | null
+            > = {};
+
+            validResults.forEach((result) => {
+                images[result.destination!.name] =
+                    result.image;
+            });
+
+            setDestinationImages(images);
+        } catch (err) {
+            console.error("Explore error:", err);
+            setError("Could not load destinations.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     /*
      * Load popular destinations and their images
      */
     useEffect(() => {
-        async function loadPopularDestinations() {
+        loadPopularDestinations();
+    }, []);
+
+    /*
+     * Live search suggestions while typing
+     */
+    useEffect(() => {
+        if (isSelectingRef.current) {
+            isSelectingRef.current = false;
+            return;
+        }
+
+        if (!query.trim()) {
+            setSuggestions([]);
+            setIsSuggestionsOpen(false);
+            return;
+        }
+
+        suggestionTimerRef.current = setTimeout(async () => {
             try {
-                setLoading(true);
-                setError("");
+                const results = await searchDestinations(query.trim());
+                setSuggestions(results);
+                setIsSuggestionsOpen(results.length > 0);
+            } catch {
+                setSuggestions([]);
+                setIsSuggestionsOpen(false);
+            }
+        }, 250);
 
-                const results = await Promise.all(
-                    popularDestinations.map(async (city) => {
-                        const [destinationResults, image] =
-                            await Promise.all([
-                                searchDestinations(city),
-                                searchDestinationImage(city),
-                            ]);
+        return () => {
+            if (suggestionTimerRef.current) {
+                clearTimeout(suggestionTimerRef.current);
+            }
+        };
+    }, [query]);
 
-                        return {
-                            destination: destinationResults[0] ?? null,
-                            image,
-                        };
-                    }),
-                );
-
-                const validResults = results.filter(
-                    (result) => result.destination !== null,
-                );
-
-                setDestinations(
-                    validResults.map(
-                        (result) => result.destination!,
-                    ),
-                );
-
-                const images: Record<
-                    string,
-                    DestinationImage | null
-                > = {};
-
-                validResults.forEach((result) => {
-                    images[result.destination!.name] =
-                        result.image;
-                });
-
-                setDestinationImages(images);
-            } catch (err) {
-                console.error("Explore error:", err);
-                setError("Could not load destinations.");
-            } finally {
-                setLoading(false);
+    // Close suggestions dropdown when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (
+                searchContainerRef.current &&
+                !searchContainerRef.current.contains(event.target as Node)
+            ) {
+                setIsSuggestionsOpen(false);
             }
         }
 
-        loadPopularDestinations();
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
     }, []);
+
+    function handleSuggestionSelect(destination: Destination) {
+        isSelectingRef.current = true;
+        setQuery(destination.name);
+        setSuggestions([]);
+        setIsSuggestionsOpen(false);
+
+        navigate(`/destination/${encodeURIComponent(destination.name)}`, {
+            state: {
+                destination,
+            },
+        });
+    }
 
     /*
      * Search for a destination
@@ -92,9 +163,12 @@ function Explore() {
             return;
         }
 
+        setIsSuggestionsOpen(false);
+
         try {
             setLoading(true);
             setError("");
+            setSearchedCity(trimmedQuery);
 
             const results = await searchDestinations(
                 trimmedQuery,
@@ -108,21 +182,24 @@ function Explore() {
             setDestinations(results);
 
             /*
-             * Load images for search results
+             * Load images for search results safely
              */
             const images: Record<
                 string,
                 DestinationImage | null
             > = {};
 
-            await Promise.all(
+            await Promise.allSettled(
                 results.map(async (destination) => {
-                    const image =
-                        await searchDestinationImage(
-                            destination.name,
-                        );
-
-                    images[destination.name] = image;
+                    try {
+                        const image =
+                            await searchDestinationImage(
+                                destination.name,
+                            );
+                        images[destination.name] = image;
+                    } catch {
+                        images[destination.name] = null;
+                    }
                 }),
             );
 
@@ -147,8 +224,19 @@ function Explore() {
         event: React.KeyboardEvent<HTMLInputElement>,
     ) {
         if (event.key === "Enter") {
+            setIsSuggestionsOpen(false);
             handleSearch();
+        } else if (event.key === "Escape") {
+            setIsSuggestionsOpen(false);
         }
+    }
+
+    function handleClearSearch() {
+        setQuery("");
+        setSearchedCity("");
+        setSuggestions([]);
+        setIsSuggestionsOpen(false);
+        loadPopularDestinations();
     }
 
     return (
@@ -171,26 +259,63 @@ function Explore() {
             </section>
 
             {/* Search */}
-            <section className="mt-8 max-w-2xl sm:mt-10">
+            <section ref={searchContainerRef} className="relative mt-8 max-w-2xl sm:mt-10">
                 <div className="flex w-full items-center rounded-full border border-[var(--color-border)] bg-white p-1.5 shadow-sm transition focus-within:border-[var(--color-text)] sm:p-2">
                     <input
                         type="text"
                         value={query}
-                        onChange={(event) =>
-                            setQuery(event.target.value)
-                        }
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            setIsSuggestionsOpen(true);
+                        }}
+                        onFocus={() => {
+                            if (suggestions.length > 0) {
+                                setIsSuggestionsOpen(true);
+                            }
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="Search for a city..."
                         className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-[var(--color-muted)] sm:px-6 sm:py-3.5 sm:text-base"
                     />
 
                     <button
-                        onClick={handleSearch}
-                        className="shrink-0 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 sm:px-8 sm:py-3.5 sm:text-base"
+                        type="button"
+                        onClick={() => {
+                            setIsSuggestionsOpen(false);
+                            handleSearch();
+                        }}
+                        disabled={!query.trim() || loading}
+                        className="shrink-0 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:px-8 sm:py-3.5 sm:text-base"
                     >
-                        Search
+                        {loading ? "Searching..." : "Search"}
                     </button>
                 </div>
+
+                {/* Suggestions dropdown */}
+                {isSuggestionsOpen && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white text-left shadow-xl">
+                        {suggestions.map((destination) => (
+                            <button
+                                key={destination.id}
+                                type="button"
+                                onClick={() => handleSuggestionSelect(destination)}
+                                className="flex w-full items-center justify-between border-b border-[var(--color-border)] p-3.5 text-left transition last:border-b-0 hover:bg-[var(--color-background)] sm:p-4"
+                            >
+                                <div>
+                                    <p className="text-xs font-medium text-[var(--color-text)] sm:text-sm md:text-base">
+                                        {destination.name}
+                                    </p>
+                                    <p className="text-[11px] text-[var(--color-muted)] sm:text-xs md:text-sm">
+                                        {destination.country}
+                                    </p>
+                                </div>
+                                <span className="text-[10px] text-[var(--color-muted)] sm:text-xs">
+                                    {destination.latitude.toFixed(2)}, {destination.longitude.toFixed(2)}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
             </section>
 
             {/* Error */}
@@ -209,25 +334,50 @@ function Explore() {
                 </div>
             )}
 
-            {/* Popular destinations */}
+            {/* Destinations list */}
             {!error && (
                 <section className="mt-20">
 
                     {/* Section heading */}
-                    <div>
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
-                            Popular destinations
-                        </p>
+                    {searchedCity ? (
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                                    Search results
+                                </p>
 
-                        <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-                            Start exploring
-                        </h2>
+                                <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                                    Destinations for "{searchedCity}"
+                                </h2>
 
-                        <p className="mt-2 text-[var(--color-muted)]">
-                            Explore some of the most popular
-                            destinations.
-                        </p>
-                    </div>
+                                <p className="mt-2 text-[var(--color-muted)]">
+                                    {destinations.length} destination{destinations.length === 1 ? "" : "s"} found.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={handleClearSearch}
+                                className="self-start rounded-full border border-[var(--color-border)] bg-white px-5 py-2 text-xs font-medium transition hover:bg-[var(--color-background)] sm:self-auto sm:text-sm"
+                            >
+                                ← Back to popular destinations
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                                Popular destinations
+                            </p>
+
+                            <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                                Start exploring
+                            </h2>
+
+                            <p className="mt-2 text-[var(--color-muted)]">
+                                Explore some of the most popular
+                                destinations.
+                            </p>
+                        </div>
+                    )}
 
                     {/* Loading */}
                     {loading ? (
@@ -382,9 +532,19 @@ function Explore() {
                             </h3>
 
                             <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-muted)]">
-                                We couldn't find a destination
-                                matching your search.
+                                {searchedCity
+                                    ? `We couldn't find any destination matching "${searchedCity}".`
+                                    : "We couldn't find any destinations matching your search."}
                             </p>
+
+                            {searchedCity && (
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="mt-6 rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-medium text-white transition hover:opacity-90"
+                                >
+                                    View popular destinations
+                                </button>
+                            )}
 
                         </div>
                     )}

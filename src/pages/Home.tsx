@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 
 import { searchDestinationImage } from "../services/imageApi";
 import type { DestinationImage } from "../types/image";
+import DestinationSearch from "../components/DestinationSearch";
 
 interface Slide {
     city: string;
@@ -274,8 +275,24 @@ function Home() {
                     </div>
                 </div>
             </section>
-            <section className="relative overflow-hidden">
-                {/* ... all your hero content ... */}
+            {/* =========================
+                SEARCH DESTINATION SECTION
+            ========================== */}
+            <section className="mx-auto max-w-7xl px-6 pb-24 lg:px-8">
+                <div className="flex flex-col items-center text-center rounded-[2rem] border border-[var(--color-border)] bg-white px-6 py-12 sm:px-12 sm:py-16 shadow-sm">
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
+                        Find a destination
+                    </p>
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+                        Where do you want to go?
+                    </h2>
+                    <p className="mt-4 max-w-lg text-base text-[var(--color-muted)] sm:text-lg">
+                        Search any city worldwide to check live weather, discover local attractions, and plan your journey.
+                    </p>
+                    <div className="mt-8 flex w-full justify-center">
+                        <DestinationSearch />
+                    </div>
+                </div>
             </section>
         </main>
     );

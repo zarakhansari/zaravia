@@ -126,12 +126,20 @@ function Destination() {
                 /*
                  * Get destination image
                  */
-                const image =
-                    await searchDestinationImage(
-                        selectedDestination.name,
-                    );
+                try {
+                    const image =
+                        await searchDestinationImage(
+                            selectedDestination.name,
+                        );
 
-                setDestinationImage(image);
+                    setDestinationImage(image);
+                } catch (imgErr) {
+                    console.warn(
+                        "Could not load destination image:",
+                        imgErr,
+                    );
+                    setDestinationImage(null);
+                }
             } catch (err) {
                 console.error(
                     "Destination error:",
